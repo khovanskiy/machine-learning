@@ -1,0 +1,12 @@
+@relation dataset_3
+
+@attribute c numeric
+@attribute x numeric
+@attribute y numeric
+
+@data
+-4,-2,-2
+-2,-1,-1
+2,1,1
+4,2,2
+8,4,4
