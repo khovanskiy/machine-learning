@@ -11,6 +11,7 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.LinearRegression;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.trees.RandomForest;
+import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ArffSaver;
@@ -73,6 +74,15 @@ public class KNNTest {
         m_x /= k;
         m_y /= k;
 
+        int position = data.numAttributes();
+        data.insertAttributeAt(new Attribute("z"), position);
+
+        for (Instance instance : data) {
+            double x = instance.value(0) - m_x;
+            double y = instance.value(1) - m_y;
+            instance.setValue(position, x * x + y * y);
+        }
+
         //data.instance(0).
 
         float p = 0.8f;
@@ -82,11 +92,7 @@ public class KNNTest {
 
         DataFrame<Object> df = new DataFrame<>();
 
-        Classifier classifier = new IBk() {
-            {
-                setKNN(5);
-            }
-        };
+        Classifier classifier = new KNN();
         classifier.buildClassifier(train);
         //ScatterPlotMatrix
         Evaluation evaluation = new Evaluation(train);

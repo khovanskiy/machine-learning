@@ -7,6 +7,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Utils;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,8 +56,8 @@ public class KNN extends AbstractClassifier {
                 assert instance.attribute(i).type() == other.attribute(i).type();
                 switch (instance.attribute(i).type()) {
                     case Attribute.NUMERIC:
-                        double a = instance.attribute(i).weight();
-                        double b = other.attribute(i).weight();
+                        double a = instance.value(i);
+                        double b = other.value(i);
                         double c = Math.abs(a - b);
                         total += c * c;
                 }
@@ -65,19 +66,25 @@ public class KNN extends AbstractClassifier {
         }
 
         int ava = Math.min(k + 1, queue.size());
+        List<Pair<Double, Instance>> instances = new ArrayList<>();
+        for (int i = 0; i < ava; i++) {
+            instances.add(queue.poll());
+        }
+        double h = instances.get(ava - 1).getKey();
 
-        Map<Integer, Integer> counts = new HashMap<>();
-        for (int i = 0; i < ava; ++i) {
-            Pair<Double, Instance> p = queue.poll();
+        Map<Integer, Double> weights = new HashMap<>();
+        for (int i = 0; i < ava - 1; ++i) {
+            Pair<Double, Instance> p = instances.get(i);
             Instance o = p.getValue();
             int x = (int) o.value(o.classIndex());
-            int a = counts.getOrDefault(x, 0);
-            int b = a + 1;
-            counts.put(x, b);
+            double a = weights.getOrDefault(x, 0d);
+            double dist = p.getKey() / h;
+            double b = a + 0.75 * (1 - dist * dist);
+            weights.put(x, b);
         }
-        int max = -1;
+        double max = -1;
         double cc = Utils.missingValue();
-        for (Map.Entry<Integer, Integer> entry : counts.entrySet()) {
+        for (Map.Entry<Integer, Double> entry : weights.entrySet()) {
             if (max < entry.getValue()) {
                 max = entry.getValue();
                 cc = entry.getKey();
