@@ -11,9 +11,11 @@ import java.util.Random;
 public class SVD {
     private final static Random random = new Random();
     private final static int ITERATION_COUNT = 100;
+    private final static int JOG_OF_WEIGHTS_COUNT = 5;
     private final static double EPS = 1e-6;
     private final static double GAMMA = 0.005D;
-    private final static double LAMBDA = 0.02D;
+    private final static double VICINITY = 0.005;
+    private double lambda = 0.02D;
 
     /**
      * Отклонение пользователя u от среднего
@@ -49,46 +51,74 @@ public class SVD {
         });
         mu = marks.stream().mapToDouble(Mark::getValue).average().getAsDouble();
 
-        int iteration = 0;
-        double prevRmse = 0;
-        double rmse = 1;
+        lambda = 1.0 / (double) marks.size();
+        System.out.println("EPS    = " + EPS);
+        System.out.println("GAMMA  = " + GAMMA);
+        System.out.println("LAMBDA = " + lambda);
 
-        while (iteration < ITERATION_COUNT && Math.abs(prevRmse - rmse) > EPS) {
-            prevRmse = rmse;
-
+        for (int k = 0; k < JOG_OF_WEIGHTS_COUNT; ++k) {
+            System.out.println("Jogging #" + k);
             for (Mark mark : marks) {
                 long user = mark.getUser();
                 long item = mark.getItem();
-                long value = mark.getValue();
-
-                double cbu = bu.get(user);
                 double[] cpu = pu.get(user);
-                double cbi = bi.get(item);
+                for (int i = 0; i < cpu.length; ++i) {
+                    double diff = randRange(-cpu[i] * VICINITY, cpu[i] * VICINITY);
+                    cpu[i] += diff;
+                }
+                pu.put(user, cpu);
                 double[] cqi = qi.get(item);
+                for (int i = 0; i < cqi.length; ++i) {
+                    double diff = randRange(-cqi[i] * VICINITY, cqi[i] * VICINITY);
+                    cqi[i] += diff;
+                }
+                qi.put(item, cqi);
+            }
+            int iteration = 0;
+            double prevRmse = 0;
+            double rmse = 1;
+            while (iteration < ITERATION_COUNT && Math.abs(prevRmse - rmse) > EPS) {
+                prevRmse = rmse;
+                System.out.println("Iteration #" + iteration);
+                for (Mark mark : marks) {
+                    long user = mark.getUser();
+                    long item = mark.getItem();
+                    long value = mark.getValue();
 
-                double predict = mu + cbi + cbu + scalar(cpu, cqi);
-                double error = value - predict;
+                    double cbu = bu.get(user);
+                    double[] cpu = pu.get(user);
+                    double cbi = bi.get(item);
+                    double[] cqi = qi.get(item);
 
-                rmse += error * error;
-                bu.put(user, cbu + GAMMA * (error - LAMBDA * cbu));
-                bi.put(item, cbi + GAMMA * (error - LAMBDA * cbi));
-                for (int i = 0; i < f; i++) {
-                    double qi = cqi[i], pu = cpu[i];
-                    cqi[i] = qi + GAMMA * (error * pu - LAMBDA * qi);
-                    cpu[i] = pu + GAMMA * (error * qi - LAMBDA * pu);
+                    double predict = mu + cbi + cbu + scalar(cpu, cqi);
+                    double error = value - predict;
+
+                    rmse += error * error;
+                    bu.put(user, cbu + GAMMA * (error - lambda * cbu));
+                    bi.put(item, cbi + GAMMA * (error - lambda * cbi));
+                    for (int i = 0; i < f; i++) {
+                        double qi = cqi[i], pu = cpu[i];
+                        cqi[i] = qi + GAMMA * (error * pu - lambda * qi);
+                        cpu[i] = pu + GAMMA * (error * qi - lambda * pu);
+                    }
+
+                    rmse = Math.sqrt(rmse / marks.size());
                 }
 
-                rmse = Math.sqrt(rmse / marks.size());
+                ++iteration;
             }
-
-            ++iteration;
         }
+    }
+
+    public static double randRange(double low, double high) {
+        return random.nextDouble() * (high - low) + low;
     }
 
     private double[] randArray() {
         double[] array = new double[f];
         for (int i = 0; i < f; ++i) {
-            array[i] = random.nextDouble();
+            //array[i] = random.nextDouble();
+            array[i] = randRange(-1.0 / (double) f, 1.0 / (double) f);
         }
         return array;
     }
