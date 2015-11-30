@@ -36,7 +36,7 @@ public class RecSys implements Runnable {
             return temp;
         }).flatMap(Collection::stream).collect(Collectors.toList());
 
-        SVD svd = new SVD(10);
+        SVD svd = new SVD(7);
         svd.learn(marks);
         try (BufferedReader reader = new BufferedReader(new FileReader(new File("test-ids.csv")))) {
             reader.readLine();
