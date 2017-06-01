@@ -7,7 +7,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import static ru.ifmo.ctddev.ml.LinearUtils.dotProduct;
+import static ru.ifmo.ctddev.ml.util.LinearUtils.dotProduct;
 
 /**
  * @author Victor Khovanskiy

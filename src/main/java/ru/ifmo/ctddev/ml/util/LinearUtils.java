@@ -1,4 +1,4 @@
-package ru.ifmo.ctddev.ml;
+package ru.ifmo.ctddev.ml.util;
 
 /**
  * @author Victor Khovanskiy

@@ -18,15 +18,16 @@ import java.util.stream.Collectors;
 public class RecommenderSystemTest {
     @Test
     public void test() throws IOException {
-        int featureCount = 9;
+        int featureCount = 7;
         double gamma = 0.005;
         double lambda = 0.03;
         int iterationCount = 100;
         double eps = 1e-6;
-        final RecommenderSystemImpl recommenderSystem = new RecommenderSystemImpl(featureCount, gamma, lambda, iterationCount, eps);
+        //final RecommenderSystem recommenderSystem = new RecommenderSystemImpl(featureCount, gamma, lambda, iterationCount, eps);
+        final RecommenderSystem recommenderSystem = new RecommenderSystemStub(5);
         final List<File> train = Arrays.asList(
-                new File("resources", "train.csv"),
-                new File("resources", "validation.csv")
+                new File("resources", "train.csv")
+                //new File("resources", "validation.csv")
         );
 
         List<Rating> trainRatings = train.stream()
@@ -37,22 +38,31 @@ public class RecommenderSystemTest {
 
         validate(recommenderSystem);
 
-        generateSubmission(recommenderSystem);
+        //generateSubmission(recommenderSystem);
     }
 
-    private void validate(RecommenderSystemImpl recommenderSystem) {
+    private void validate(RecommenderSystem recommenderSystem) {
+        log.info("Validation");
         final File validation = new File("resources", "validation.csv");
         List<Rating> validationRatings = readRatings(validation);
         double rmse = 0;
+
+        int count = 0;
         for (Rating actual : validationRatings) {
+            log.info("Validating #{}/{}", count, validationRatings.size());
             Rating predicted = recommenderSystem.predict(actual.getUserId(), actual.getItemId());
+            //log.debug("User = " + actual.getUserId() + ", Item = " + actual.getItemId() + " | A = " + actual.getValue() + " P = " + predicted.getValue());
             rmse += Math.pow(predicted.getValue() - actual.getValue(), 2);
+            ++count;
+            if (count > 2500) {
+                break;
+            }
         }
-        rmse = Math.sqrt(rmse / validationRatings.size());
+        rmse = Math.sqrt(rmse / count);
         log.info("RMSE = " + rmse);
     }
 
-    private void generateSubmission(RecommenderSystemImpl recommenderSystem) throws IOException {
+    private void generateSubmission(RecommenderSystem recommenderSystem) throws IOException {
         final File testIds = new File("resources", "test-ids.csv");
         try (BufferedReader reader = new BufferedReader(new FileReader(testIds))) {
             reader.readLine();
