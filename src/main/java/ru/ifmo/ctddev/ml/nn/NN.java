@@ -87,10 +87,10 @@ public class NN implements Runnable {
             /*double precision = Validation.cv(2, new SVM.CascadeTrainer<>(new LinearKernel(), 1, 10, SVM.Multiclass.ONE_VS_ONE), train, labels, new Precision());*/
             final int vectorSize = train[0].length;
 
-            final int[] units = {vectorSize, (int) Math.sqrt(vectorSize), 14, 12, 10};
+            final int[] units = {vectorSize, vectorSize >> 1, vectorSize >> 2, vectorSize >> 3, 10};
 
-            int folds = 5;
-            int baseEpochs = 5;
+            int folds = 2;
+            int baseEpochs = 1;
             long timestamp = System.currentTimeMillis();
             double precision = Validation.cv(folds, new MyNeuralNetwork.Trainer(MyNeuralNetwork.ErrorFunction.CROSS_ENTROPY, units).setNumEpochs((int) (baseEpochs * 2.5f)), train, labels, new Precision());
             log.info("Precision = " + precision);

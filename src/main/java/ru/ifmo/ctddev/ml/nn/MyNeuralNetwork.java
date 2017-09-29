@@ -1007,7 +1007,6 @@ public class MyNeuralNetwork implements OnlineClassifier<double[]>, SoftClassifi
             int currentLayer = 0;
             while (currentLayer < numUnits.length - 1) {
                 int numLayers = currentLayer + 2;
-                logger.info("Learn the {} layers", numLayers);
                 int[] units = new int[numLayers];
                 for (int i = 0; i < numLayers - 1; ++i) {
                     units[i] = numUnits[i];
@@ -1028,6 +1027,7 @@ public class MyNeuralNetwork implements OnlineClassifier<double[]>, SoftClassifi
                     currentNet.learn(x, y);
                     logger.info("Neural network learns epoch {}", i);
                 }
+                logger.info("Neural network learns {} layers", numLayers);
                 ++currentLayer;
                 oldNet = currentNet;
             }
