@@ -22,8 +22,8 @@ public class NN implements Runnable {
 
     @Override
     public void run() {
-        final File labelsFile = new File("./ml-module/train-labels.idx1-ubyte");
-        final File imagesFile = new File("./ml-module/train-images.idx3-ubyte");
+        final File labelsFile = new File("./resources/train-labels.idx1-ubyte");
+        final File imagesFile = new File("./resources/train-images.idx3-ubyte");
         final byte[] buffer = new byte[1024];
         try {
             openStream(labelsFile, labelsStream -> {
@@ -84,10 +84,21 @@ public class NN implements Runnable {
 
 
             log.info("Cross Validation...");
-            /*double precision = Validation.cv(2, new SVM.Trainer<>(new LinearKernel(), 1, 10, SVM.Multiclass.ONE_VS_ONE), train, labels, new Precision());*/
+            /*double precision = Validation.cv(2, new SVM.CascadeTrainer<>(new LinearKernel(), 1, 10, SVM.Multiclass.ONE_VS_ONE), train, labels, new Precision());*/
             final int vectorSize = train[0].length;
-            double precision = Validation.cv(2, new MyNeuralNetwork.Trainer(MyNeuralNetwork.ErrorFunction.CROSS_ENTROPY, vectorSize, (int) Math.sqrt(vectorSize), 10).setNumEpochs(3), train, labels, new Precision());
+
+            final int[] units = {vectorSize, (int) Math.sqrt(vectorSize), 14, 12, 10};
+
+            int folds = 5;
+            int baseEpochs = 5;
+            long timestamp = System.currentTimeMillis();
+            double precision = Validation.cv(folds, new MyNeuralNetwork.Trainer(MyNeuralNetwork.ErrorFunction.CROSS_ENTROPY, units).setNumEpochs((int) (baseEpochs * 2.5f)), train, labels, new Precision());
             log.info("Precision = " + precision);
+            log.info("Time = " + (System.currentTimeMillis() - timestamp));
+            timestamp = System.currentTimeMillis();
+            precision = Validation.cv(folds, new MyNeuralNetwork.CascadeTrainer(MyNeuralNetwork.ErrorFunction.CROSS_ENTROPY, units).setNumEpochs(baseEpochs), train, labels, new Precision());
+            log.info("Precision = " + precision);
+            log.info("Time = " + (System.currentTimeMillis() - timestamp));
         } catch (IOException e) {
             e.printStackTrace();
         }

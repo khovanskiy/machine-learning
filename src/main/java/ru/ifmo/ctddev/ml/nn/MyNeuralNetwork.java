@@ -840,21 +840,183 @@ public class MyNeuralNetwork implements OnlineClassifier<double[]>, SoftClassifi
 
         @Override
         public MyNeuralNetwork train(double[][] x, int[] y) {
+            MyNeuralNetwork net = new MyNeuralNetwork(errorFunction, activationFunction, numUnits);
+            net.setLearningRate(eta);
+            net.setMomentum(alpha);
+            net.setWeightDecay(lambda);
+
+            for (int i = 1; i <= epochs; i++) {
+                net.learn(x, y);
+                logger.info("Neural network learns epoch {}", i);
+            }
+
+            return net;
+        }
+    }
+
+    /**
+     * CascadeTrainer for neural networks.
+     */
+    public static class CascadeTrainer extends ClassifierTrainer<double[]> {
+        /**
+         * The type of error function of network.
+         */
+        private ErrorFunction errorFunction = ErrorFunction.LEAST_MEAN_SQUARES;
+        /**
+         * The type of activation function in output layer.
+         */
+        private ActivationFunction activationFunction = ActivationFunction.LOGISTIC_SIGMOID;
+        /**
+         * The number of units in each layer.
+         */
+        private int[] numUnits;
+        /**
+         * learning rate
+         */
+        private double eta = 0.1;
+        /**
+         * momentum factor
+         */
+        private double alpha = 0.0;
+        /**
+         * weight decay factor, which is also a regularization term.
+         */
+        private double lambda = 0.0;
+        /**
+         * The number of epochs of stochastic learning.
+         */
+        private int epochs = 25;
+
+        /**
+         * Constructor. The activation function of output layer will be chosen
+         * by natural pairing based on the error function and the number of
+         * classes.
+         *
+         * @param error    the error function.
+         * @param numUnits the number of units in each layer.
+         */
+        public CascadeTrainer(ErrorFunction error, int... numUnits) {
+            this(error, natural(error, numUnits[numUnits.length - 1]), numUnits);
+        }
+
+        /**
+         * Constructor.
+         *
+         * @param error      the error function.
+         * @param activation the activation function of output layer.
+         * @param numUnits   the number of units in each layer.
+         */
+        public CascadeTrainer(ErrorFunction error, ActivationFunction activation, int... numUnits) {
+            int numLayers = numUnits.length;
+            if (numLayers < 2) {
+                throw new IllegalArgumentException("Invalid number of layers: " + numLayers);
+            }
+
+            for (int i = 0; i < numLayers; i++) {
+                if (numUnits[i] < 1) {
+                    throw new IllegalArgumentException(String.format("Invalid number of units of layer %d: %d", i + 1, numUnits[i]));
+                }
+            }
+
+            if (error == ErrorFunction.LEAST_MEAN_SQUARES) {
+                if (activation == ActivationFunction.SOFTMAX) {
+                    throw new IllegalArgumentException("Sofmax activation function is invalid for least mean squares error.");
+                }
+            }
+
+            if (error == ErrorFunction.CROSS_ENTROPY) {
+                if (activation == ActivationFunction.LINEAR) {
+                    throw new IllegalArgumentException("Linear activation function is invalid with cross entropy error.");
+                }
+
+                if (activation == ActivationFunction.SOFTMAX && numUnits[numLayers - 1] == 1) {
+                    throw new IllegalArgumentException("Softmax activation function is for multi-class.");
+                }
+
+                if (activation == ActivationFunction.LOGISTIC_SIGMOID && numUnits[numLayers - 1] != 1) {
+                    throw new IllegalArgumentException("For cross entropy error, logistic sigmoid output is for binary classification.");
+                }
+            }
+
+            this.errorFunction = error;
+            this.activationFunction = activation;
+            this.numUnits = numUnits;
+        }
+
+        /**
+         * Sets the learning rate.
+         *
+         * @param eta the learning rate.
+         */
+        public CascadeTrainer setLearningRate(double eta) {
+            if (eta <= 0) {
+                throw new IllegalArgumentException("Invalid learning rate: " + eta);
+            }
+            this.eta = eta;
+            return this;
+        }
+
+        /**
+         * Sets the momentum factor.
+         *
+         * @param alpha the momentum factor.
+         */
+        public CascadeTrainer setMomentum(double alpha) {
+            if (alpha < 0.0 || alpha >= 1.0) {
+                throw new IllegalArgumentException("Invalid momentum factor: " + alpha);
+            }
+
+            this.alpha = alpha;
+            return this;
+        }
+
+        /**
+         * Sets the weight decay factor. After each weight update, every weight
+         * is simply ''decayed'' or shrunk according w = w * (1 - eta * lambda).
+         *
+         * @param lambda the weight decay for regularization.
+         */
+        public CascadeTrainer setWeightDecay(double lambda) {
+            if (lambda < 0.0 || lambda > 0.1) {
+                throw new IllegalArgumentException("Invalid weight decay factor: " + lambda);
+            }
+
+            this.lambda = lambda;
+            return this;
+        }
+
+        /**
+         * Sets the number of epochs of stochastic learning.
+         *
+         * @param epochs the number of epochs of stochastic learning.
+         */
+        public CascadeTrainer setNumEpochs(int epochs) {
+            if (epochs < 1) {
+                throw new IllegalArgumentException("Invalid numer of epochs of stochastic learning:" + epochs);
+            }
+
+            this.epochs = epochs;
+            return this;
+        }
+
+        @Override
+        public MyNeuralNetwork train(double[][] x, int[] y) {
             MyNeuralNetwork oldNet = null;
             MyNeuralNetwork currentNet = null;
 
             int currentLayer = 0;
-            while (currentLayer < numUnits.length - 2) {
-                logger.info("Learn the {} layer", currentLayer + 1);
-                int[] units = new int[currentLayer + 2];
-                for (int i = 0; i < currentLayer + 1; ++i) {
+            while (currentLayer < numUnits.length - 1) {
+                int numLayers = currentLayer + 2;
+                logger.info("Learn the {} layers", numLayers);
+                int[] units = new int[numLayers];
+                for (int i = 0; i < numLayers - 1; ++i) {
                     units[i] = numUnits[i];
                 }
                 units[units.length - 1] = numUnits[numUnits.length - 1];
                 currentNet = new MyNeuralNetwork(errorFunction, activationFunction, units);
                 if (oldNet != null) {
                     currentNet.inputLayer = oldNet.inputLayer;
-                    for (int i = 0; i < currentLayer + 1; ++i) {
+                    for (int i = 0; i < numLayers - 1; ++i) {
                         currentNet.net[i] = oldNet.net[i];
                     }
                 }
