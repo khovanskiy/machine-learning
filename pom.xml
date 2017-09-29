@@ -73,6 +73,18 @@
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Smile -->
+        <dependency>
+            <groupId>com.github.haifengl</groupId>
+            <artifactId>smile-core</artifactId>
+            <version>1.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.haifengl</groupId>
+            <artifactId>smile-nlp</artifactId>
+            <version>1.4.0</version>
+        </dependency>
     </dependencies>
 
     <build>
